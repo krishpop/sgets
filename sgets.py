@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import sys
 import re
 import json
+import os
 import requests
 
 social_domains = [r'twitter.com/', r'facebook.com/']
@@ -38,6 +39,12 @@ ios_pattern = re.compile(
     r'([0-9]{9})'
     )
 
+url_pattern = re.compile(
+    r'^(?:http)s?://'
+    r'(?:www.)?'
+    r'([A-Za-z0-9][A-Za-z0-9\-]{0,61}[A-Za-z0-9]|[A-Za-z0-9])'
+    )
+
 
 def find_id(link, pattern_to_match, pattern_match, url_domain):
     user_match = pattern_to_match.match(link)
@@ -50,7 +57,11 @@ def find_id(link, pattern_to_match, pattern_match, url_domain):
 
 
 def get_domain(url):
-    return "zynga"
+    try:
+        url_match = url_pattern.match(url).group(1)
+    except:
+        sys.exit("invalid URL")
+    return url_match
 
 
 def validate_url(url):
@@ -61,7 +72,9 @@ def validate_url(url):
         sys.exit("Validation error: please provide http or https")
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
+    except requests.exceptions.Timeout:
+        sys.exit("url timeout")
     except:
         sys.exit("url invalid")
 
@@ -72,13 +85,16 @@ def validate_url(url):
     return response
 
 
-def main():
+def main(urls):
     # Process arguments
-    if len(sys.argv) != 2:
-        sys.exit("format: sgets [URL]")
-    url = sys.argv[1]
+    if len(urls) == 0:
+        sys.exit("format: sgets [URL]+")
+    url = urls[0]
     response = validate_url(url)
     url_domain = get_domain(url)
+
+    if not os.path.exists("JSON"):
+        os.makedirs("JSON")
 
     soup = BeautifulSoup(response.text)
     twitter_match = (None, -1)
@@ -103,8 +119,9 @@ def main():
         json_output["ios"] = ios_match[0]
     if google_match[0]:
         json_output["google"] = google_match[0]
-    print(json.dumps(json_output, sort_keys=True, indent=4))
+    with open('JSON/' + url_domain + '.json', 'w') as dumpfile:
+        json.dump(json_output, dumpfile, sort_keys=True, indent=4)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
