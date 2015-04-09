@@ -89,38 +89,41 @@ def main(urls):
     # Process arguments
     if len(urls) == 0:
         sys.exit("format: sgets [URL]+")
-    url = urls[0]
-    response = validate_url(url)
-    url_domain = get_domain(url)
 
     if not os.path.exists("JSON"):
         os.makedirs("JSON")
 
-    soup = BeautifulSoup(response.text)
-    twitter_match = (None, -1)
-    facebook_match = (None, -1)
-    google_match = (None, -1)
-    ios_match = (None, -1)
-    for link in soup.find_all('a'):
-        link_url = link.get('href')
-        twitter_match = find_id(
-            link_url, twitter_pattern, twitter_match, url_domain)
-        facebook_match = find_id(
-            link_url, facebook_pattern, facebook_match, url_domain)
-        google_match = find_id(
-            link_url, google_pattern, google_match, url_domain)
-        ios_match = find_id(link_url, ios_pattern, ios_match, url_domain)
-    json_output = {}
-    if twitter_match[0]:
-        json_output["twitter"] = twitter_match[0]
-    if facebook_match[0]:
-        json_output["facebook"] = facebook_match[0]
-    if ios_match[0]:
-        json_output["ios"] = ios_match[0]
-    if google_match[0]:
-        json_output["google"] = google_match[0]
-    with open('JSON/' + url_domain + '.json', 'w') as dumpfile:
-        json.dump(json_output, dumpfile, sort_keys=True, indent=4)
+    for url in urls:
+        response = validate_url(url)
+        url_domain = get_domain(url)
+
+        soup = BeautifulSoup(response.text)
+        twitter_match = (None, -1)
+        facebook_match = (None, -1)
+        google_match = (None, -1)
+        ios_match = (None, -1)
+
+        for link in soup.find_all('a'):
+            link_url = link.get('href')
+            twitter_match = find_id(
+                link_url, twitter_pattern, twitter_match, url_domain)
+            facebook_match = find_id(
+                link_url, facebook_pattern, facebook_match, url_domain)
+            google_match = find_id(
+                link_url, google_pattern, google_match, url_domain)
+            ios_match = find_id(link_url, ios_pattern, ios_match, url_domain)
+        json_output = {}
+
+        if twitter_match[0]:
+            json_output["twitter"] = twitter_match[0]
+        if facebook_match[0]:
+            json_output["facebook"] = facebook_match[0]
+        if ios_match[0]:
+            json_output["ios"] = ios_match[0]
+        if google_match[0]:
+            json_output["google"] = google_match[0]
+        with open('JSON/' + url_domain + '.json', 'w') as dumpfile:
+            json.dump(json_output, dumpfile, sort_keys=True, indent=4)
 
 
 if __name__ == '__main__':
